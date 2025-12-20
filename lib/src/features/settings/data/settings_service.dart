@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingsService {
   static const String _themeKey = 'theme_mode';
   static const String _localeKey = 'locale_code';
+  static const String _pageKey = 'sql_page';
 
   // 主题
   Future<ThemeMode> themeMode() async {
@@ -40,5 +41,16 @@ class SettingsService {
     } else {
       await prefs.setString(_localeKey, locale.toLanguageTag()); // zh-CN like
     }
+  }
+
+  // SQL 每页数量
+  Future<int> sqlPage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_pageKey) ?? 20;
+  }
+
+  Future<void> updateSqlPage(int page) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_pageKey, page);
   }
 }

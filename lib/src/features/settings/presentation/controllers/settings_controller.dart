@@ -9,15 +9,18 @@ class SettingsController with ChangeNotifier {
 
   late ThemeMode _themeMode;
   Locale? _locale;
+  late int _sqlPage;
 
   // Getter
   ThemeMode get themeMode => _themeMode;
   Locale? get locale => _locale;
+  int get sqlPage => _sqlPage;
 
   /// 初始化设置 (在 App 启动前调用)
   Future<void> loadSettings() async {
     _themeMode = await _settingsService.themeMode();
     _locale = await _settingsService.locale();
+    _sqlPage = await _settingsService.sqlPage();
     notifyListeners();
   }
 
@@ -37,6 +40,15 @@ class SettingsController with ChangeNotifier {
 
     _locale = newLocale;
     await _settingsService.updateLocale(newLocale);
+    notifyListeners();
+  }
+
+  /// 更新 SQL 每页数量
+  Future<void> updateSqlPage(int newPage) async {
+    if (newPage == _sqlPage) return;
+
+    _sqlPage = newPage;
+    await _settingsService.updateSqlPage(newPage);
     notifyListeners();
   }
 }

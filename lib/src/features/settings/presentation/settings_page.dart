@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
+
 import './controllers/settings_controller.dart';
 import 'widgets/settings_group.dart';
 import 'widgets/settings_item.dart';
@@ -109,6 +111,82 @@ class SettingsPage extends StatelessWidget {
                         controller.updateLocale(Locale(value));
                       }
                     },
+                  ),
+                ),
+              ),
+              SettingsItem(
+                title: "图库每页数量",
+                subtitle: "选择图库界面每页显示的截图数量",
+                trailing: Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 减号按钮：-10
+                      IconButton(
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        icon: const Icon(Icons.remove, size: 18),
+                        onPressed: () {
+                          final newValue = controller.sqlPage - 10;
+                          controller.updateSqlPage(
+                            newValue > 0 ? newValue : 10,
+                          ); // 最小限制为10
+                        },
+                      ),
+                      // 中间输入框
+                      SizedBox(
+                        width: 40,
+                        child: TextField(
+                          textAlign: TextAlign.center,
+                          controller:
+                              TextEditingController(
+                                  text: controller.sqlPage.toString(),
+                                )
+                                ..selection = TextSelection.collapsed(
+                                  offset: controller.sqlPage.toString().length,
+                                ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          style: TextStyle(
+                            color: colorScheme.onSurface,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          onSubmitted: (value) {
+                            final intValue = int.tryParse(value);
+                            if (intValue != null && intValue > 0) {
+                              controller.updateSqlPage(intValue);
+                            }
+                          },
+                        ),
+                      ),
+                      // 加号按钮：+10
+                      IconButton(
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        icon: const Icon(Icons.add, size: 18),
+                        onPressed: () {
+                          controller.updateSqlPage(controller.sqlPage + 10);
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),

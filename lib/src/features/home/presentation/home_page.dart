@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'controllers/home_navigation_controller.dart';
 import 'widgets/nav_button.dart';
 import '../../settings/presentation/settings_page.dart';
+import '../../screenshot_library/presentation/screenshot_library_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -82,7 +83,7 @@ class _HomePageState extends State<HomePage> {
       case HomeSection.home:
         return const Center(child: Text("主页内容"));
       case HomeSection.gallery:
-        return const Center(child: Text("相册内容"));
+        return const ScreenshotLibraryPage();
       case HomeSection.settings:
         return const SettingsPage();
       case HomeSection.about:

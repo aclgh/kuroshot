@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+
 import '../domain/screenshot.dart';
 
 class ScreenshotRepository {
@@ -120,6 +121,76 @@ class ScreenshotRepository {
       orderBy: 'timestamp DESC',
     );
 
+    return List.generate(maps.length, (i) => _fromMap(maps[i]));
+  }
+
+  Future<List<Screenshot>> getScreenshotsPaged({
+    required int page,
+    int? pageSize,
+  }) async {
+    final db = await database;
+
+    final int limit = pageSize ?? 20;
+
+    // 计算偏移量
+    final int offset = (page - 1) * limit;
+
+    final List<Map<String, dynamic>> maps = await db.query(
+      'screenshots',
+      where: 'isDeleted = ?',
+      whereArgs: [0],
+      orderBy: 'timestamp DESC',
+      limit: limit,
+      offset: offset,
+    );
+
+    return List.generate(maps.length, (i) => _fromMap(maps[i]));
+  }
+
+  Future<Screenshot?> getScreenshotById(String id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'screenshots',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (maps.isNotEmpty) {
+      return _fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<void> updateScreenshot(Screenshot screenshot) async {
+    final db = await database;
+    await db.update(
+      'screenshots',
+      _toMap(screenshot),
+      where: 'id = ?',
+      whereArgs: [screenshot.id],
+    );
+  }
+
+  Future<void> deleteScreenshot(String id) async {
+    final db = await database;
+    // 只是标记为删除，不真正从数据库移除
+    await db.update(
+      'screenshots',
+      {'isDeleted': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<List<Screenshot>> searchScreenshots(String query) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'screenshots',
+      where:
+          'isDeleted = 0 AND (appName LIKE ? OR windowTitle LIKE ? OR ocrText LIKE ? OR tags LIKE ?)',
+      whereArgs: ['%$query%', '%$query%', '%$query%', '%$query%'],
+      orderBy: 'timestamp DESC',
+    );
     return List.generate(maps.length, (i) => _fromMap(maps[i]));
   }
 }

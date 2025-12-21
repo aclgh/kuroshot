@@ -1,22 +1,52 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'src/features/home/presentation/home_page.dart';
 import 'src/features/settings/data/settings_service.dart';
 import 'src/features/settings/presentation/controllers/settings_controller.dart';
+import 'src/features/screenshot_library/presentation/controllers/library_controller.dart';
+import 'src/features/screenshot_library/data/screenshot_repository.dart';
+import 'src/features/screenshot_library/application/screenshot_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    // 初始化 FFI 非移动端数据库支持
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
   final settingsService = SettingsService();
   final settingsController = SettingsController(settingsService);
-
   await settingsController.loadSettings();
+  final screenshotRepository = ScreenshotRepository();
+  final screenshotService = ScreenshotService(screenshotRepository);
 
   runApp(
-    ChangeNotifierProvider.value(
-      value: settingsController,
+    MultiProvider(
+      providers: [
+        // 提供设置控制器
+        ChangeNotifierProvider.value(value: settingsController),
+
+        // 提供基础服务（如果它们不是 ChangeNotifier，可以用 Provider）
+        Provider.value(value: screenshotRepository),
+        Provider.value(value: screenshotService),
+
+        // 使用 ProxyProvider 联动 LibraryController
+        ChangeNotifierProxyProvider<SettingsController, LibraryController>(
+          lazy: false,
+          create: (context) => LibraryController(
+            service: context.read<ScreenshotService>(),
+            repository: context.read<ScreenshotRepository>(),
+          ),
+          update: (context, settings, library) {
+            // 当 settingsController 通知变化时，这里会被调用
+            return library!..updateConfig(pageSize: settings.sqlPage);
+          },
+        ),
+      ],
       child: const MainApp(),
     ),
   );

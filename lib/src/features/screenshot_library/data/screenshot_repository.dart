@@ -4,6 +4,8 @@ import 'package:path/path.dart';
 
 import '../domain/screenshot.dart';
 
+import '../domain/sort_config.dart';
+
 class ScreenshotRepository {
   static final ScreenshotRepository _instance =
       ScreenshotRepository._internal();
@@ -124,9 +126,19 @@ class ScreenshotRepository {
     return List.generate(maps.length, (i) => _fromMap(maps[i]));
   }
 
+  Future<int> getScreenshotCount() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM screenshots WHERE isDeleted = 0',
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
   Future<List<Screenshot>> getScreenshotsPaged({
     required int page,
     int? pageSize,
+    SortConfig? primarySort,
+    SortConfig? secondarySort,
   }) async {
     final db = await database;
 
@@ -135,16 +147,47 @@ class ScreenshotRepository {
     // 计算偏移量
     final int offset = (page - 1) * limit;
 
+    // 构建排序语句
+    String orderBy = 'timestamp DESC';
+    if (primarySort != null) {
+      final primary = _getSqlSort(primarySort);
+      if (secondarySort != null) {
+        final secondary = _getSqlSort(secondarySort);
+        orderBy = '$primary, $secondary';
+      } else {
+        orderBy = primary;
+      }
+    }
+
     final List<Map<String, dynamic>> maps = await db.query(
       'screenshots',
       where: 'isDeleted = ?',
       whereArgs: [0],
-      orderBy: 'timestamp DESC',
+      orderBy: orderBy,
       limit: limit,
       offset: offset,
     );
 
     return List.generate(maps.length, (i) => _fromMap(maps[i]));
+  }
+
+  String _getSqlSort(SortConfig config) {
+    String column;
+    switch (config.type) {
+      case SortType.timestamp:
+        column = 'timestamp';
+        break;
+      case SortType.filesize:
+        column = 'filesize';
+        break;
+      case SortType.appName:
+        column = 'appName';
+        break;
+    }
+    final direction = config.direction == SortDirection.ascending
+        ? 'ASC'
+        : 'DESC';
+    return '$column $direction';
   }
 
   Future<Screenshot?> getScreenshotById(String id) async {

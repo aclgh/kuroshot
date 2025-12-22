@@ -32,18 +32,29 @@ class ScreenshotService {
         // 释放图片资源
         frameInfo.image.dispose();
 
+        final id = _uuid.v4();
+        final extension = p.extension(path);
+        final format = extension.replaceAll('.', '').toLowerCase();
+
+        // 复制文件到程序根目录下的 screenshots 文件夹
+        final relativePath = p.join('screenshots', '$id$extension');
+        final absolutePath = p.join(Directory.current.path, relativePath);
+
+        final storageDir = Directory(p.dirname(absolutePath));
+        if (!await storageDir.exists()) {
+          await storageDir.create(recursive: true);
+        }
+        await file.copy(absolutePath);
+
         // 构建实体对象
         final screenshot = Screenshot(
-          id: _uuid.v4(), // 生成唯一ID
+          id: id,
           timestamp: stat.changed, // 使用文件修改时间
           filesize: stat.size,
           width: width,
           height: height,
-          format: p
-              .extension(path)
-              .replaceAll('.', '')
-              .toLowerCase(), // e.g. "png"
-          path: path, // 这里目前存的是原路径
+          format: format,
+          path: relativePath,
           source: 'import',
           appName: 'Unknown',
         );

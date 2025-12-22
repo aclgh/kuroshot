@@ -13,6 +13,7 @@ class SortMenuButton extends StatelessWidget {
     final controller = context.watch<LibraryController>();
 
     return MenuAnchor(
+      alignmentOffset: const Offset(-13, 0), // 微调位置
       builder: (context, controller, child) {
         return TextButton.icon(
           onPressed: () {

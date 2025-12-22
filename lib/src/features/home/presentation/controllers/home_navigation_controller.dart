@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum HomeSection { home, gallery, settings, about }
+enum HomeSection { home, gallery, recycleBin, settings, about }
 
 class HomeNavigationController extends ChangeNotifier {
   HomeSection _currentSection = HomeSection.home;

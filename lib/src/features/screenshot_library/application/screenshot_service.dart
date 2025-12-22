@@ -65,4 +65,14 @@ class ScreenshotService {
       }
     }
   }
+
+  Future<void> deleteScreenshots(List<String> ids) async {
+    for (final id in ids) {
+      try {
+        await _repository.deleteScreenshot(id);
+      } catch (e) {
+        logger.e("删除截图失败 $id: $e");
+      }
+    }
+  }
 }

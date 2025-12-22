@@ -31,6 +31,9 @@ class _ScreenshotPreviewPageState extends State<ScreenshotPreviewPage> {
   void dispose() {
     _pageController.dispose();
     _focusNode.dispose();
+    // 退出时立即清理图片缓存，释放内存
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
     super.dispose();
   }
 
@@ -102,6 +105,13 @@ class _ScreenshotPreviewPageState extends State<ScreenshotPreviewPage> {
                       });
                     },
                     itemBuilder: (context, index) {
+                      // 动态计算缓存大小，避免加载过大的图片导致内存溢出
+                      final screenWidth = MediaQuery.of(context).size.width;
+                      final pixelRatio = MediaQuery.of(
+                        context,
+                      ).devicePixelRatio;
+                      final cacheWidth = (screenWidth * pixelRatio).round();
+
                       return InteractiveViewer(
                         minScale: 0.5,
                         maxScale: 4.0,
@@ -109,6 +119,7 @@ class _ScreenshotPreviewPageState extends State<ScreenshotPreviewPage> {
                           child: Image.file(
                             File(screenshots[index].path),
                             fit: BoxFit.contain,
+                            cacheWidth: cacheWidth,
                           ),
                         ),
                       );

@@ -47,6 +47,13 @@ class _HomePageState extends State<HomePage> {
                       onTap: () =>
                           _controller.changeSection(HomeSection.gallery),
                     ),
+                    NavButton(
+                      icon: Icons.delete_outline,
+                      isSelected:
+                          _controller.currentSection == HomeSection.recycleBin,
+                      onTap: () =>
+                          _controller.changeSection(HomeSection.recycleBin),
+                    ),
                     const Spacer(),
                     NavButton(
                       icon: Icons.settings,
@@ -84,6 +91,8 @@ class _HomePageState extends State<HomePage> {
         return const Center(child: Text("主页内容"));
       case HomeSection.gallery:
         return const ScreenshotLibraryPage();
+      case HomeSection.recycleBin:
+        return const Center(child: Text("回收站内容"));
       case HomeSection.settings:
         return const SettingsPage();
       case HomeSection.about:

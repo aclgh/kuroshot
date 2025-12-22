@@ -7,8 +7,17 @@ import '../screenshot_preview_page.dart';
 
 class ScreenshotCard extends StatefulWidget {
   final Screenshot screenshot;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback? onToggleSelection;
 
-  const ScreenshotCard({super.key, required this.screenshot});
+  const ScreenshotCard({
+    super.key,
+    required this.screenshot,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onToggleSelection,
+  });
 
   @override
   State<ScreenshotCard> createState() => _ScreenshotCardState();
@@ -20,6 +29,8 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isSelected = widget.isSelected;
+    final isSelectionMode = widget.isSelectionMode;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -30,9 +41,9 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
         curve: Curves.easeOutBack, // 缩放使用回弹曲线
         transform: Matrix4.identity()
           ..scaleByDouble(
-            _isHovered ? 1.05 : 1.0,
-            _isHovered ? 1.05 : 1.0,
-            _isHovered ? 1.05 : 1.0,
+            _isHovered && !isSelectionMode ? 1.05 : 1.0,
+            _isHovered && !isSelectionMode ? 1.05 : 1.0,
+            _isHovered && !isSelectionMode ? 1.05 : 1.0,
             1.0,
           ),
         transformAlignment: Alignment.center,
@@ -41,7 +52,7 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
           curve: Curves.easeOut, // 阴影使用普通曲线，防止 blurRadius < 0 导致崩溃
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            boxShadow: _isHovered
+            boxShadow: _isHovered && !isSelectionMode
                 ? [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.2),
@@ -62,10 +73,14 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
                     color: colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _isHovered
+                      color: isSelected
                           ? colorScheme.primary
-                          : colorScheme.outlineVariant.withValues(alpha: 0.5),
-                      width: _isHovered ? 2 : 1,
+                          : (_isHovered
+                                ? colorScheme.primary
+                                : colorScheme.outlineVariant.withValues(
+                                    alpha: 0.5,
+                                  )),
+                      width: isSelected || _isHovered ? 2 : 1,
                     ),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -75,6 +90,7 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
                       Image.file(
                         File(widget.screenshot.path),
                         fit: BoxFit.cover,
+                        cacheWidth: 300,
                         errorBuilder: (context, error, stackTrace) {
                           return Center(
                             child: Icon(
@@ -85,43 +101,111 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
                           );
                         },
                       ),
-                      AnimatedOpacity(
-                        duration: const Duration(milliseconds: 200),
-                        opacity: _isHovered ? 0.0 : 0.0,
-                        child: Container(color: Colors.black),
-                      ),
+                      // 选中遮罩
+                      if (isSelected)
+                        Container(
+                          color: colorScheme.primary.withValues(alpha: 0.2),
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.check,
+                                color: colorScheme.onPrimary,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Hover 遮罩 (非选择模式)
+                      if (!isSelectionMode)
+                        AnimatedOpacity(
+                          duration: const Duration(milliseconds: 200),
+                          opacity: _isHovered ? 0.0 : 0.0,
+                          child: Container(color: Colors.black),
+                        ),
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () {
-                            final controller = context
-                                .read<LibraryController>();
-                            final index = controller.screenshots.indexOf(
-                              widget.screenshot,
-                            );
-                            if (index != -1) {
-                              Navigator.of(context).push(
-                                PageRouteBuilder(
-                                  opaque: false,
-                                  barrierColor: Colors.black.withValues(
-                                    alpha: 0.9,
+                            if (isSelectionMode) {
+                              widget.onToggleSelection?.call();
+                            } else {
+                              final controller = context
+                                  .read<LibraryController>();
+                              final index = controller.screenshots.indexOf(
+                                widget.screenshot,
+                              );
+                              if (index != -1) {
+                                Navigator.of(context).push(
+                                  PageRouteBuilder(
+                                    opaque: false,
+                                    barrierColor: Colors.black.withValues(
+                                      alpha: 0.9,
+                                    ),
+                                    pageBuilder:
+                                        (
+                                          context,
+                                          animation,
+                                          secondaryAnimation,
+                                        ) {
+                                          return FadeTransition(
+                                            opacity: animation,
+                                            child: ScreenshotPreviewPage(
+                                              initialIndex: index,
+                                            ),
+                                          );
+                                        },
                                   ),
-                                  pageBuilder:
-                                      (context, animation, secondaryAnimation) {
-                                        return FadeTransition(
-                                          opacity: animation,
-                                          child: ScreenshotPreviewPage(
-                                            initialIndex: index,
-                                          ),
-                                        );
-                                      },
-                                ),
+                                );
+                              }
+                            }
+                          },
+                          onLongPress: () {
+                            if (!isSelectionMode) {
+                              // 长按进入选择模式并选中当前项
+                              context
+                                  .read<LibraryController>()
+                                  .toggleSelectionMode();
+                              context.read<LibraryController>().toggleSelection(
+                                widget.screenshot.id,
                               );
                             }
                           },
                           hoverColor: Colors.transparent, // 禁用默认的 hover 灰色背景
                         ),
                       ),
+                      // 选择模式下的复选框 (右上角)
+                      if (isSelectionMode)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IgnorePointer(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : Colors.black.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: isSelected
+                                  ? Icon(
+                                      Icons.check,
+                                      size: 16,
+                                      color: colorScheme.onPrimary,
+                                    )
+                                  : const SizedBox(width: 16, height: 16),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -133,10 +217,12 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
                 child: AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 200),
                   style: TextStyle(
-                    color: _isHovered
+                    color: _isHovered || isSelected
                         ? colorScheme.primary
                         : colorScheme.onSurface,
-                    fontWeight: _isHovered ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: _isHovered || isSelected
+                        ? FontWeight.w600
+                        : FontWeight.w500,
                     fontSize: 14,
                   ),
                   child: Text(

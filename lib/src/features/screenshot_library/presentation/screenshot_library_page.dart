@@ -8,8 +8,19 @@ import 'widgets/page_input.dart';
 import 'widgets/sort_menu_button.dart';
 import 'widgets/library_search_bar.dart';
 
-class ScreenshotLibraryPage extends StatelessWidget {
+class ScreenshotLibraryPage extends StatefulWidget {
   const ScreenshotLibraryPage({super.key});
+
+  @override
+  State<ScreenshotLibraryPage> createState() => _ScreenshotLibraryPageState();
+}
+
+class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
+  @override
+  void dispose() {
+    PaintingBinding.instance.imageCache.clear();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,61 +42,14 @@ class ScreenshotLibraryPage extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Row(
-                    children: [
-                      Text(
-                        "图库",
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w300,
-                          color: colorScheme.onSurface,
+                  child: controller.isSelectionMode
+                      ? _buildSelectionToolbar(context, controller)
+                      : _buildNormalToolbar(
+                          context,
+                          controller,
+                          menuButtonStyle,
+                          colorScheme,
                         ),
-                      ),
-                      if (controller.isLoading) ...[
-                        const SizedBox(width: 16),
-                        const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ],
-                      const Spacer(),
-
-                      //右侧菜单
-                      const LibrarySearchBar(),
-
-                      TextButton.icon(
-                        onPressed: () async {
-                          final result = await FilePicker.platform.pickFiles(
-                            allowMultiple: true,
-                            type: FileType.image,
-                          );
-                          if (result != null && context.mounted) {
-                            final paths = result.paths
-                                .whereType<String>()
-                                .toList();
-                            context.read<LibraryController>().importFiles(
-                              paths,
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.add, size: 20),
-                        label: const Text("添加截图"),
-                        style: menuButtonStyle,
-                      ),
-
-                      SortMenuButton(style: menuButtonStyle),
-
-                      IconButton(
-                        onPressed: () {
-                          // TODO: 显示更多菜单
-                        },
-                        icon: const Icon(Icons.more_horiz),
-                        color: colorScheme.onSurface,
-                        tooltip: "更多",
-                      ),
-                    ],
-                  ),
                 ),
               ),
 
@@ -114,7 +78,15 @@ class ScreenshotLibraryPage extends StatelessWidget {
                         ),
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final screenshot = controller.screenshots[index];
-                      return ScreenshotCard(screenshot: screenshot);
+                      return ScreenshotCard(
+                        screenshot: screenshot,
+                        isSelectionMode: controller.isSelectionMode,
+                        isSelected: controller.selectedIds.contains(
+                          screenshot.id,
+                        ),
+                        onToggleSelection: () =>
+                            controller.toggleSelection(screenshot.id),
+                      );
                     }, childCount: controller.screenshots.length),
                   ),
                 ),
@@ -159,6 +131,175 @@ class ScreenshotLibraryPage extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildNormalToolbar(
+    BuildContext context,
+    LibraryController controller,
+    ButtonStyle menuButtonStyle,
+    ColorScheme colorScheme,
+  ) {
+    return Row(
+      children: [
+        Text(
+          "图库",
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w300,
+            color: colorScheme.onSurface,
+          ),
+        ),
+        if (controller.isLoading) ...[
+          const SizedBox(width: 16),
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ],
+        const Spacer(),
+
+        //右侧菜单
+        const LibrarySearchBar(),
+
+        TextButton.icon(
+          onPressed: () async {
+            final result = await FilePicker.platform.pickFiles(
+              allowMultiple: true,
+              type: FileType.image,
+            );
+            if (result != null && context.mounted) {
+              final paths = result.paths.whereType<String>().toList();
+              context.read<LibraryController>().importFiles(paths);
+            }
+          },
+          icon: const Icon(Icons.add, size: 20),
+          label: const Text("添加截图"),
+          style: menuButtonStyle,
+        ),
+
+        SortMenuButton(style: menuButtonStyle),
+
+        MenuAnchor(
+          style: const MenuStyle(alignment: Alignment.bottomRight),
+          alignmentOffset: const Offset(-105, 0), // 批量删除微调位置
+          builder: (context, controller, child) {
+            return IconButton(
+              onPressed: () {
+                if (controller.isOpen) {
+                  controller.close();
+                } else {
+                  controller.open();
+                }
+              },
+              icon: const Icon(Icons.more_horiz),
+              color: colorScheme.onSurface,
+              tooltip: "更多",
+            );
+          },
+          menuChildren: [
+            MenuItemButton(
+              onPressed: () {
+                context.read<LibraryController>().toggleSelectionMode();
+              },
+              leadingIcon: const Icon(Icons.delete_outline),
+              child: const Text("批量删除"),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectionToolbar(
+    BuildContext context,
+    LibraryController controller,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final selectedCount = controller.selectedIds.length;
+
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 16,
+      runSpacing: 16,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: () => controller.toggleSelectionMode(),
+              icon: const Icon(Icons.close),
+              tooltip: "取消选择",
+            ),
+            const SizedBox(width: 16),
+            Text(
+              "已选择 $selectedCount 项",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton.icon(
+              onPressed: () => controller.selectAll(),
+              icon: const Icon(Icons.select_all),
+              label: const Text("全选本页"),
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: () => controller.deselectAll(),
+              icon: const Icon(Icons.deselect),
+              label: const Text("取消全选"),
+            ),
+            const SizedBox(width: 16),
+            FilledButton.icon(
+              onPressed: selectedCount > 0
+                  ? () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text("确认删除"),
+                          content: Text(
+                            "确定要删除选中的 $selectedCount 张截图吗？此操作不可恢复。",
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text("取消"),
+                            ),
+                            FilledButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                controller.deleteSelected();
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: colorScheme.error,
+                                foregroundColor: colorScheme.onError,
+                              ),
+                              child: const Text("删除"),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  : null,
+              icon: const Icon(Icons.delete),
+              label: const Text("删除"),
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

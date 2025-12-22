@@ -24,6 +24,10 @@ class LibraryController extends ChangeNotifier {
 
   String _searchQuery = '';
 
+  // Selection
+  bool _isSelectionMode = false;
+  final Set<String> _selectedIds = {};
+
   //stats
   List<Screenshot> _screenshots = [];
   bool _isLoading = false;
@@ -36,6 +40,8 @@ class LibraryController extends ChangeNotifier {
   SortConfig get primarySort => _primarySort;
   SortConfig get secondarySort => _secondarySort;
   String get searchQuery => _searchQuery;
+  bool get isSelectionMode => _isSelectionMode;
+  Set<String> get selectedIds => _selectedIds;
 
   LibraryController({
     required ScreenshotService service,
@@ -124,6 +130,51 @@ class LibraryController extends ChangeNotifier {
       logger.i("成功导入 ${paths.length} 个文件");
     } catch (e) {
       logger.e("导入过程发生错误: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Selection Methods
+  void toggleSelectionMode() {
+    _isSelectionMode = !_isSelectionMode;
+    _selectedIds.clear();
+    notifyListeners();
+  }
+
+  void toggleSelection(String id) {
+    if (_selectedIds.contains(id)) {
+      _selectedIds.remove(id);
+    } else {
+      _selectedIds.add(id);
+    }
+    notifyListeners();
+  }
+
+  void selectAll() {
+    _selectedIds.addAll(_screenshots.map((s) => s.id));
+    notifyListeners();
+  }
+
+  void deselectAll() {
+    _selectedIds.clear();
+    notifyListeners();
+  }
+
+  Future<void> deleteSelected() async {
+    if (_selectedIds.isEmpty) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _service.deleteScreenshots(_selectedIds.toList());
+      _selectedIds.clear();
+      _isSelectionMode = false;
+      await _loadPage(_page);
+    } catch (e) {
+      logger.e("删除失败: $e");
     } finally {
       _isLoading = false;
       notifyListeners();

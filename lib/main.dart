@@ -72,6 +72,7 @@ class MainApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
+        fontFamily: 'Microsoft YaHei',
       ),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -79,6 +80,7 @@ class MainApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        fontFamily: 'Microsoft YaHei',
       ),
 
       // 语言设置

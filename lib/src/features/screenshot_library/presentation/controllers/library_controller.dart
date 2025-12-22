@@ -22,6 +22,8 @@ class LibraryController extends ChangeNotifier {
     direction: SortDirection.ascending,
   );
 
+  String _searchQuery = '';
+
   //stats
   List<Screenshot> _screenshots = [];
   bool _isLoading = false;
@@ -33,6 +35,7 @@ class LibraryController extends ChangeNotifier {
   int get allPages => _allPages;
   SortConfig get primarySort => _primarySort;
   SortConfig get secondarySort => _secondarySort;
+  String get searchQuery => _searchQuery;
 
   LibraryController({
     required ScreenshotService service,
@@ -67,8 +70,17 @@ class LibraryController extends ChangeNotifier {
     _loadPage(_page);
   }
 
+  void search(String query) {
+    if (_searchQuery == query) return;
+    _searchQuery = query;
+    _page = 1;
+    _loadPage(_page);
+  }
+
   Future<void> _getAllPages() async {
-    final totalCount = await _repository.getScreenshotCount();
+    final totalCount = await _repository.getScreenshotCount(
+      searchQuery: _searchQuery,
+    );
     _allPages = (totalCount / _pageSize).ceil();
   }
 
@@ -85,6 +97,7 @@ class LibraryController extends ChangeNotifier {
         pageSize: _pageSize,
         primarySort: _primarySort,
         secondarySort: _secondarySort,
+        searchQuery: _searchQuery,
       );
       logger.i("加载第 $page 页截图，共 ${_screenshots.length} 张");
     } catch (e) {

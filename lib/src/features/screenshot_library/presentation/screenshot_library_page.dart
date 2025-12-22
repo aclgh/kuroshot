@@ -6,6 +6,7 @@ import 'controllers/library_controller.dart';
 import 'widgets/screenshot_card.dart';
 import 'widgets/page_input.dart';
 import 'widgets/sort_menu_button.dart';
+import 'widgets/library_search_bar.dart';
 
 class ScreenshotLibraryPage extends StatelessWidget {
   const ScreenshotLibraryPage({super.key});
@@ -51,23 +52,7 @@ class ScreenshotLibraryPage extends StatelessWidget {
                       const Spacer(),
 
                       //右侧菜单
-                      TextButton.icon(
-                        onPressed: () {
-                          // TODO: 实现搜索逻辑
-                        },
-                        icon: const Icon(Icons.search, size: 20),
-                        label: const Text("搜索"),
-                        style: menuButtonStyle,
-                      ),
-
-                      TextButton.icon(
-                        onPressed: () {
-                          // TODO: 实现过滤逻辑
-                        },
-                        icon: const Icon(Icons.filter_alt_outlined, size: 20),
-                        label: const Text("过滤"),
-                        style: menuButtonStyle,
-                      ),
+                      const LibrarySearchBar(),
 
                       TextButton.icon(
                         onPressed: () async {

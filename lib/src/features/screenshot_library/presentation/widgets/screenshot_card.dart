@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../domain/screenshot.dart';
+import '../controllers/library_controller.dart';
+import '../screenshot_preview_page.dart';
 
 class ScreenshotCard extends StatefulWidget {
   final Screenshot screenshot;
@@ -82,7 +85,6 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
                           );
                         },
                       ),
-                      // 悬停时的遮罩层（可选）
                       AnimatedOpacity(
                         duration: const Duration(milliseconds: 200),
                         opacity: _isHovered ? 0.0 : 0.0,
@@ -92,7 +94,30 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () {
-                            // TODO: 点击查看大图或详情
+                            final controller = context
+                                .read<LibraryController>();
+                            final index = controller.screenshots.indexOf(
+                              widget.screenshot,
+                            );
+                            if (index != -1) {
+                              Navigator.of(context).push(
+                                PageRouteBuilder(
+                                  opaque: false,
+                                  barrierColor: Colors.black.withValues(
+                                    alpha: 0.9,
+                                  ),
+                                  pageBuilder:
+                                      (context, animation, secondaryAnimation) {
+                                        return FadeTransition(
+                                          opacity: animation,
+                                          child: ScreenshotPreviewPage(
+                                            initialIndex: index,
+                                          ),
+                                        );
+                                      },
+                                ),
+                              );
+                            }
                           },
                           hoverColor: Colors.transparent, // 禁用默认的 hover 灰色背景
                         ),

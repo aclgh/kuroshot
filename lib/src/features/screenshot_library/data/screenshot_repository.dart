@@ -126,10 +126,27 @@ class ScreenshotRepository {
     return List.generate(maps.length, (i) => _fromMap(maps[i]));
   }
 
-  Future<int> getScreenshotCount() async {
+  Future<int> getScreenshotCount({String? searchQuery}) async {
     final db = await database;
+    String whereClause = 'isDeleted = 0';
+    List<dynamic> whereArgs = [];
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      whereClause +=
+          ' AND (appName LIKE ? OR windowTitle LIKE ? OR ocrText LIKE ? OR tags LIKE ? OR comment LIKE ? OR description LIKE ?)';
+      whereArgs.addAll([
+        '%$searchQuery%',
+        '%$searchQuery%',
+        '%$searchQuery%',
+        '%$searchQuery%',
+        '%$searchQuery%',
+        '%$searchQuery%',
+      ]);
+    }
+
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM screenshots WHERE isDeleted = 0',
+      'SELECT COUNT(*) as count FROM screenshots WHERE $whereClause',
+      whereArgs,
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
@@ -139,6 +156,7 @@ class ScreenshotRepository {
     int? pageSize,
     SortConfig? primarySort,
     SortConfig? secondarySort,
+    String? searchQuery,
   }) async {
     final db = await database;
 
@@ -159,10 +177,26 @@ class ScreenshotRepository {
       }
     }
 
+    String whereClause = 'isDeleted = 0';
+    List<dynamic> whereArgs = [];
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      whereClause +=
+          ' AND (appName LIKE ? OR windowTitle LIKE ? OR ocrText LIKE ? OR tags LIKE ? OR comment LIKE ? OR description LIKE ?)';
+      whereArgs.addAll([
+        '%$searchQuery%',
+        '%$searchQuery%',
+        '%$searchQuery%',
+        '%$searchQuery%',
+        '%$searchQuery%',
+        '%$searchQuery%',
+      ]);
+    }
+
     final List<Map<String, dynamic>> maps = await db.query(
       'screenshots',
-      where: 'isDeleted = ?',
-      whereArgs: [0],
+      where: whereClause,
+      whereArgs: whereArgs.isNotEmpty ? whereArgs : null,
       orderBy: orderBy,
       limit: limit,
       offset: offset,

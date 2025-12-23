@@ -1,14 +1,13 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kuroshot/utils/logger.dart';
 
-import '../../domain/screenshot.dart';
-import '../../domain/sort_config.dart';
-import '../../data/screenshot_repository.dart';
-import '../../application/screenshot_service.dart';
+import '../../../screenshot_library/domain/screenshot.dart';
+import '../../../screenshot_library/domain/sort_config.dart';
+import '../../../screenshot_library/data/screenshot_repository.dart';
+import '../../../screenshot_library/application/screenshot_service.dart';
 
-class LibraryController extends ChangeNotifier {
+class TrashController extends ChangeNotifier {
   final ScreenshotService _service;
   final ScreenshotRepository _repository;
   late final StreamSubscription<void> _subscription;
@@ -46,19 +45,19 @@ class LibraryController extends ChangeNotifier {
   bool get isSelectionMode => _isSelectionMode;
   Set<String> get selectedIds => _selectedIds;
 
-  LibraryController({
+  TrashController({
     required ScreenshotService service,
     required ScreenshotRepository repository,
   }) : _service = service,
        _repository = repository {
-    // 监听 Service 层的数据变更流（包括删除、恢复等操作）
+    // 订阅 Service 的变更流
     _subscription = _service.onScreenshotsChanged.listen((_) {
-      logger.i("检测到数据变更，刷新图库");
+      logger.i("检测到数据变更，刷新回收站");
       _loadPage(_page);
     });
+
     _loadPage(_page);
   }
-
   @override
   void dispose() {
     _subscription.cancel();
@@ -68,7 +67,7 @@ class LibraryController extends ChangeNotifier {
   void updateConfig({required int pageSize}) {
     // 如果新页码和当前一致，则不处理，避免重复刷新
     if (_pageSize == pageSize) return;
-    logger.i("更新图库每页数量: $_pageSize -> $pageSize");
+    logger.i("更新回收站每页数量: $_pageSize -> $pageSize");
     _pageSize = pageSize;
     _getAllPages();
     // 回到首页
@@ -98,7 +97,7 @@ class LibraryController extends ChangeNotifier {
   }
 
   Future<void> _getAllPages() async {
-    final totalCount = await _repository.getScreenshotCount(
+    final totalCount = await _repository.getDeletedScreenshotCount(
       searchQuery: _searchQuery,
     );
     _allPages = (totalCount / _pageSize).ceil();
@@ -112,50 +111,17 @@ class LibraryController extends ChangeNotifier {
       // 每次加载页面时同时也更新总页数，以防数据变动
       await _getAllPages();
 
-      final rawScreenshots = await _repository.getScreenshotsPaged(
+      // 只获取已删除的截图 (isDeleted = 1)
+      _screenshots = await _repository.getDeletedScreenshotsPaged(
         page: page,
         pageSize: _pageSize,
         primarySort: _primarySort,
         secondarySort: _secondarySort,
         searchQuery: _searchQuery,
       );
-
-      // 并行检查文件是否存在，过滤掉不存在的文件
-      final validScreenshots = await Future.wait(
-        rawScreenshots.map((s) async {
-          return await File(s.path).exists() ? s : null;
-        }),
-      );
-
-      _screenshots = validScreenshots.whereType<Screenshot>().toList();
-
-      logger.i(
-        "加载第 $page 页截图，共 ${_screenshots.length} 张 (已隐藏 ${rawScreenshots.length - _screenshots.length} 个丢失文件)",
-      );
+      logger.i("加载第 $page 页回收站截图，共 ${_screenshots.length} 张");
     } catch (e) {
-      logger.e("加载截图失败: $e");
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> importFiles(List<String> paths) async {
-    if (paths.isEmpty) return;
-
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      await _service.importFiles(paths);
-
-      // 导入完成后，通常重置回第一页以显示最新导入的内容
-      _page = 1;
-      await _loadPage(_page);
-
-      logger.i("成功导入 ${paths.length} 个文件");
-    } catch (e) {
-      logger.e("导入过程发生错误: $e");
+      logger.e("加载回收站截图失败: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -188,19 +154,20 @@ class LibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> deleteSelected() async {
+  // 恢复选中的截图
+  Future<void> restoreSelected() async {
     if (_selectedIds.isEmpty) return;
 
     _isLoading = true;
     notifyListeners();
 
     try {
-      await _service.deleteScreenshots(_selectedIds.toList());
+      await _service.restoreScreenshots(_selectedIds.toList());
       _selectedIds.clear();
       _isSelectionMode = false;
       await _loadPage(_page);
     } catch (e) {
-      logger.e("删除失败: $e");
+      logger.e("恢复失败: $e");
     } finally {
       if (_screenshots.isEmpty && _page > 1) {
         // 当前页没有数据且不是第一页，尝试加载前一页
@@ -210,14 +177,31 @@ class LibraryController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+    // Service 的操作会触发 onScreenshotsChanged，无需手动通知
   }
 
-  Future<void> toggleFavorite(String id) async {
+  // 彻底删除选中的截图
+  Future<void> permanentlyDeleteSelected() async {
+    if (_selectedIds.isEmpty) return;
+
+    _isLoading = true;
+    notifyListeners();
+
     try {
-      await _service.toggleFavorite(id);
-      // 不需要重新加载整页，service的stream会自动触发刷新
+      await _service.removeScreenshots(_selectedIds.toList());
+      _selectedIds.clear();
+      _isSelectionMode = false;
+      await _loadPage(_page);
     } catch (e) {
-      logger.e("切换收藏状态失败: $e");
+      logger.e("彻底删除失败: $e");
+    } finally {
+      if (_screenshots.isEmpty && _page > 1) {
+        // 当前页没有数据且不是第一页，尝试加载前一页
+        _page--;
+        await _loadPage(_page);
+      }
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

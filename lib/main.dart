@@ -10,6 +10,7 @@ import 'src/features/settings/presentation/controllers/settings_controller.dart'
 import 'src/features/screenshot_library/presentation/controllers/library_controller.dart';
 import 'src/features/screenshot_library/data/screenshot_repository.dart';
 import 'src/features/screenshot_library/application/screenshot_service.dart';
+import 'src/features/trash/presentation/controllers/trash_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,16 @@ void main() async {
           update: (context, settings, library) {
             // 当 settingsController 通知变化时，这里会被调用
             return library!..updateConfig(pageSize: settings.sqlPage);
+          },
+        ),
+        ChangeNotifierProxyProvider<SettingsController, TrashController>(
+          lazy: false,
+          create: (context) => TrashController(
+            service: context.read<ScreenshotService>(),
+            repository: context.read<ScreenshotRepository>(),
+          ),
+          update: (context, settings, trash) {
+            return trash!..updateConfig(pageSize: settings.sqlPage);
           },
         ),
       ],

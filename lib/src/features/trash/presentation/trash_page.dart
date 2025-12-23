@@ -1,27 +1,22 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:open_file/open_file.dart';
-import 'dart:io';
-import 'package:pasteboard/pasteboard.dart';
-import 'package:kuroshot/utils/logger.dart';
 
 import '../../../shared/widgets/app_snack_bar.dart';
-import 'controllers/library_controller.dart';
-import 'widgets/screenshot_card.dart';
-import 'widgets/screenshot_context_menu.dart';
-import 'widgets/page_input.dart';
-import 'widgets/sort_menu_button.dart';
-import 'widgets/library_search_bar.dart';
+import 'controllers/trash_controller.dart';
+import '../../screenshot_library/presentation/widgets/screenshot_card.dart';
+import '../../screenshot_library/presentation/widgets/page_input.dart';
+import '../../screenshot_library/presentation/widgets/sort_menu_button.dart';
+import '../../screenshot_library/presentation/widgets/library_search_bar.dart';
+import '../../screenshot_library/presentation/widgets/screenshot_context_menu.dart';
 
-class ScreenshotLibraryPage extends StatefulWidget {
-  const ScreenshotLibraryPage({super.key});
+class TrashPage extends StatefulWidget {
+  const TrashPage({super.key});
 
   @override
-  State<ScreenshotLibraryPage> createState() => _ScreenshotLibraryPageState();
+  State<TrashPage> createState() => _TrashPageState();
 }
 
-class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
+class _TrashPageState extends State<TrashPage> {
   @override
   void dispose() {
     PaintingBinding.instance.imageCache.clear();
@@ -39,8 +34,8 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      // 使用 Consumer 监听 LibraryController 的变化
-      body: Consumer<LibraryController>(
+      // 使用 Consumer 监听 TrashController 的变化
+      body: Consumer<TrashController>(
         builder: (context, controller, child) {
           return CustomScrollView(
             slivers: [
@@ -66,7 +61,7 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
                     height: 300,
                     alignment: Alignment.center,
                     child: Text(
-                      "暂无截图，请点击右上角添加",
+                      "回收站为空",
                       style: TextStyle(color: colorScheme.onSurfaceVariant),
                     ),
                   ),
@@ -85,51 +80,51 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final screenshot = controller.screenshots[index];
                       return ScreenshotContextMenu(
-                        isFavorite: screenshot.isFavorite,
-                        onToggleFavorite: () async {
-                          final wasFavorite = screenshot.isFavorite;
-                          await controller.toggleFavorite(screenshot.id);
+                        onRestore: () {
+                          controller.selectedIds.add(screenshot.id);
+                          controller.restoreSelected();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              AppSnackBar(
-                                context,
-                                message: wasFavorite ? '已取消收藏' : '已收藏',
+                              AppSnackBar(context, message: '已恢复到图库'),
+                            );
+                          }
+                        },
+                        onPermanentlyDelete: () {
+                          if (context.mounted) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text("确认彻底删除"),
+                                content: Text("确定要彻底删除这张截图吗？此操作不可恢复。"),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: const Text("取消"),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                      controller.selectedIds.add(screenshot.id);
+                                      controller.permanentlyDeleteSelected();
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        AppSnackBar(
+                                          context,
+                                          message: '已彻底删除截图',
+                                        ),
+                                      );
+                                    },
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: colorScheme.error,
+                                      foregroundColor: colorScheme.onError,
+                                    ),
+                                    child: const Text("彻底删除"),
+                                  ),
+                                ],
                               ),
                             );
-                          }
-                        },
-                        onMoveToTrash: () {
-                          controller.selectedIds.add(screenshot.id);
-                          controller.deleteSelected();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              AppSnackBar(context, message: '已移至回收站'),
-                            );
-                          }
-                        },
-                        onOpen: () {
-                          OpenFile.open(screenshot.path);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              AppSnackBar(context, message: '已使用默认程序打开图片'),
-                            );
-                          }
-                        },
-                        onCopyImg: () async {
-                          try {
-                            final file = File(screenshot.path);
-                            if (await file.exists()) {
-                              final bytes = await file.readAsBytes();
-                              await Pasteboard.writeImage(bytes);
-                            }
-
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                AppSnackBar(context, message: '图片已复制到剪切板'),
-                              );
-                            }
-                          } catch (e) {
-                            logger.e("复制图片失败: $e");
                           }
                         },
                         child: ScreenshotCard(
@@ -191,14 +186,14 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
 
   Widget _buildNormalToolbar(
     BuildContext context,
-    LibraryController controller,
+    TrashController controller,
     ButtonStyle menuButtonStyle,
     ColorScheme colorScheme,
   ) {
     return Row(
       children: [
         Text(
-          "图库",
+          "回收站",
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w300,
@@ -218,30 +213,11 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
         //右侧菜单
         const LibrarySearchBar(),
 
-        TextButton.icon(
-          onPressed: () async {
-            final result = await FilePicker.platform.pickFiles(
-              allowMultiple: true,
-              type: FileType.image,
-            );
-            if (result != null && context.mounted) {
-              final paths = result.paths.whereType<String>().toList();
-              context.read<LibraryController>().importFiles(paths);
-              ScaffoldMessenger.of(context).showSnackBar(
-                AppSnackBar(context, message: '已添加 ${paths.length} 张截图'),
-              );
-            }
-          },
-          icon: const Icon(Icons.add, size: 20),
-          label: const Text("添加截图"),
-          style: menuButtonStyle,
-        ),
-
         SortMenuButton(style: menuButtonStyle),
 
         MenuAnchor(
           style: const MenuStyle(alignment: Alignment.bottomRight),
-          alignmentOffset: const Offset(-105, 0), // 批量删除微调位置
+          alignmentOffset: const Offset(-105, 0), // 批量操作微调位置
           builder: (context, controller, child) {
             return IconButton(
               onPressed: () {
@@ -259,10 +235,10 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
           menuChildren: [
             MenuItemButton(
               onPressed: () {
-                context.read<LibraryController>().toggleSelectionMode();
+                context.read<TrashController>().toggleSelectionMode();
               },
-              leadingIcon: const Icon(Icons.delete_outline),
-              child: const Text("批量删除"),
+              leadingIcon: const Icon(Icons.restore),
+              child: const Text("批量操作"),
             ),
           ],
         ),
@@ -272,7 +248,7 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
 
   Widget _buildSelectionToolbar(
     BuildContext context,
-    LibraryController controller,
+    TrashController controller,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
     final selectedCount = controller.selectedIds.length;
@@ -323,9 +299,44 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
                       showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: const Text("确认删除"),
+                          title: const Text("确认恢复"),
+                          content: Text("确定要恢复选中的 $selectedCount 张截图吗？"),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text("取消"),
+                            ),
+                            FilledButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                controller.restoreSelected();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  AppSnackBar(
+                                    context,
+                                    message: '已恢复 $selectedCount 张截图',
+                                  ),
+                                );
+                              },
+                              child: const Text("恢复"),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  : null,
+              icon: const Icon(Icons.restore),
+              label: const Text("恢复"),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              onPressed: selectedCount > 0
+                  ? () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text("确认彻底删除"),
                           content: Text(
-                            "确定要删除选中的 $selectedCount 张截图吗？后续可从回收站恢复。",
+                            "确定要彻底删除选中的 $selectedCount 张截图吗？此操作不可恢复。",
                           ),
                           actions: [
                             TextButton(
@@ -335,11 +346,11 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
                             FilledButton(
                               onPressed: () {
                                 Navigator.of(context).pop();
-                                controller.deleteSelected();
+                                controller.permanentlyDeleteSelected();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   AppSnackBar(
                                     context,
-                                    message: '已将 $selectedCount 张截图移至回收站',
+                                    message: '已彻底删除 $selectedCount 张截图',
                                   ),
                                 );
                               },
@@ -347,15 +358,15 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
                                 backgroundColor: colorScheme.error,
                                 foregroundColor: colorScheme.onError,
                               ),
-                              child: const Text("删除"),
+                              child: const Text("彻底删除"),
                             ),
                           ],
                         ),
                       );
                     }
                   : null,
-              icon: const Icon(Icons.delete),
-              label: const Text("删除"),
+              icon: const Icon(Icons.delete_forever),
+              label: const Text("彻底删除"),
               style: FilledButton.styleFrom(
                 backgroundColor: colorScheme.error,
                 foregroundColor: colorScheme.onError,

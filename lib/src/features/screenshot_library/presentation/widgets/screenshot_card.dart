@@ -105,20 +105,20 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
                       if (isSelected)
                         Container(
                           color: colorScheme.primary.withValues(alpha: 0.2),
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.check,
-                                color: colorScheme.onPrimary,
-                                size: 24,
-                              ),
-                            ),
-                          ),
+                          // child: Center(
+                          //   child: Container(
+                          //     padding: const EdgeInsets.all(8),
+                          //     decoration: BoxDecoration(
+                          //       color: colorScheme.primary,
+                          //       shape: BoxShape.circle,
+                          //     ),
+                          //     child: Icon(
+                          //       Icons.check,
+                          //       color: colorScheme.onPrimary,
+                          //       size: 24,
+                          //     ),
+                          //   ),
+                          // ),
                         ),
                       // Hover 遮罩 (非选择模式)
                       if (!isSelectionMode)
@@ -175,10 +175,10 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
                               );
                             }
                           },
-                          hoverColor: Colors.transparent, // 禁用默认的 hover 灰色背景
+                          hoverColor: Colors.transparent,
                         ),
                       ),
-                      // 选择模式下的复选框 (右上角)
+                      // 选择模式下的复选框
                       if (isSelectionMode)
                         Positioned(
                           top: 8,
@@ -203,6 +203,26 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
                                       color: colorScheme.onPrimary,
                                     )
                                   : const SizedBox(width: 16, height: 16),
+                            ),
+                          ),
+                        ),
+                      // 收藏标记
+                      if (widget.screenshot.isFavorite)
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: IgnorePointer(
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.4),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.star,
+                                size: 16,
+                                color: Colors.amber,
+                              ),
                             ),
                           ),
                         ),

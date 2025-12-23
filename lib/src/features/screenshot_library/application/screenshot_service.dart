@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:uuid/uuid.dart';
@@ -10,6 +11,12 @@ import '../data/screenshot_repository.dart';
 class ScreenshotService {
   final ScreenshotRepository _repository;
   final Uuid _uuid = Uuid();
+
+  final _changeController = StreamController<void>.broadcast();
+  Stream<void> get onScreenshotsChanged => _changeController.stream;
+  void dispose() {
+    _changeController.close();
+  }
 
   ScreenshotService(this._repository);
 
@@ -66,6 +73,25 @@ class ScreenshotService {
     }
   }
 
+  Future<void> removeScreenshots(List<String> ids) async {
+    for (final id in ids) {
+      try {
+        final screenshot = await _repository.getScreenshotById(id);
+        if (screenshot != null) {
+          final absolutePath = p.join(Directory.current.path, screenshot.path);
+          final file = File(absolutePath);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        }
+        await _repository.removeScreenshot(id);
+      } catch (e) {
+        logger.e("移除截图失败 $id: $e");
+      }
+    }
+    _changeController.add(null);
+  }
+
   Future<void> deleteScreenshots(List<String> ids) async {
     for (final id in ids) {
       try {
@@ -73,6 +99,27 @@ class ScreenshotService {
       } catch (e) {
         logger.e("删除截图失败 $id: $e");
       }
+    }
+    _changeController.add(null);
+  }
+
+  Future<void> restoreScreenshots(List<String> ids) async {
+    for (final id in ids) {
+      try {
+        await _repository.restoreScreenshot(id);
+      } catch (e) {
+        logger.e("恢复截图失败 $id: $e");
+      }
+    }
+    _changeController.add(null);
+  }
+
+  Future<void> toggleFavorite(String id) async {
+    try {
+      await _repository.toggleFavorite(id);
+      _changeController.add(null);
+    } catch (e) {
+      logger.e("切换收藏状态失败 $id: $e");
     }
   }
 }

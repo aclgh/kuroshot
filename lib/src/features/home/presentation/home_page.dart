@@ -4,6 +4,7 @@ import 'controllers/home_navigation_controller.dart';
 import 'widgets/nav_button.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../screenshot_library/presentation/screenshot_library_page.dart';
+import '../../trash/presentation/trash_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -92,7 +93,7 @@ class _HomePageState extends State<HomePage> {
       case HomeSection.gallery:
         return const ScreenshotLibraryPage();
       case HomeSection.recycleBin:
-        return const Center(child: Text("回收站内容"));
+        return const TrashPage();
       case HomeSection.settings:
         return const SettingsPage();
       case HomeSection.about:

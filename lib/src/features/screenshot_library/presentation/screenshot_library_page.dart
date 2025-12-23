@@ -240,7 +240,6 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
         SortMenuButton(style: menuButtonStyle),
 
         MenuAnchor(
-          style: const MenuStyle(alignment: Alignment.bottomRight),
           alignmentOffset: const Offset(-105, 0), // 批量删除微调位置
           builder: (context, controller, child) {
             return IconButton(
@@ -263,6 +262,31 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
               },
               leadingIcon: const Icon(Icons.delete_outline),
               child: const Text("批量删除"),
+            ),
+            MenuItemButton(
+              onPressed: () {
+                context.read<LibraryController>().updatePage(1);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(AppSnackBar(context, message: '成功刷新截图列表'));
+                }
+              },
+              leadingIcon: const Icon(Icons.refresh),
+              child: const Text("刷新"),
+            ),
+            Consumer<LibraryController>(
+              builder: (context, ctrl, child) {
+                return MenuItemButton(
+                  onPressed: () {
+                    ctrl.toggleFavoritesFilter();
+                  },
+                  leadingIcon: Icon(
+                    ctrl.showOnlyFavorites ? Icons.star : Icons.star_outline,
+                  ),
+                  child: Text(ctrl.showOnlyFavorites ? "显示全部截图" : "只显示收藏截图"),
+                );
+              },
             ),
           ],
         ),

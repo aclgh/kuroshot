@@ -2,8 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:open_file/open_file.dart';
+import 'package:pasteboard/pasteboard.dart';
+import 'package:kuroshot/utils/logger.dart';
 import 'controllers/library_controller.dart';
 import '../domain/screenshot.dart';
+import 'widgets/screenshot_context_menu.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
 
 class ScreenshotPreviewPage extends StatefulWidget {
   final int initialIndex;
@@ -111,15 +116,66 @@ class _ScreenshotPreviewPageState extends State<ScreenshotPreviewPage> {
                         context,
                       ).devicePixelRatio;
                       final cacheWidth = (screenWidth * pixelRatio).round();
+                      final screenshot = screenshots[index];
 
-                      return InteractiveViewer(
-                        minScale: 0.5,
-                        maxScale: 4.0,
-                        child: Center(
-                          child: Image.file(
-                            File(screenshots[index].path),
-                            fit: BoxFit.contain,
-                            cacheWidth: cacheWidth,
+                      return ScreenshotContextMenu(
+                        isFavorite: screenshot.isFavorite,
+                        onToggleFavorite: () async {
+                          final wasFavorite = screenshot.isFavorite;
+                          await controller.toggleFavorite(screenshot.id);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              AppSnackBar(
+                                context,
+                                message: wasFavorite ? '已取消收藏' : '已收藏',
+                              ),
+                            );
+                          }
+                        },
+                        onMoveToTrash: () {
+                          controller.selectedIds.add(screenshot.id);
+                          controller.deleteSelected();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              AppSnackBar(context, message: '已移至回收站'),
+                            );
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        onOpen: () {
+                          OpenFile.open(screenshot.path);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              AppSnackBar(context, message: '已使用默认程序打开图片'),
+                            );
+                          }
+                        },
+                        onCopyImg: () async {
+                          try {
+                            final file = File(screenshot.path);
+                            if (await file.exists()) {
+                              final bytes = await file.readAsBytes();
+                              await Pasteboard.writeImage(bytes);
+                            }
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                AppSnackBar(context, message: '图片已复制到剪切板'),
+                              );
+                            }
+                          } catch (e) {
+                            logger.e("复制图片失败: $e");
+                          }
+                        },
+                        child: InteractiveViewer(
+                          minScale: 0.5,
+                          maxScale: 4.0,
+                          child: Center(
+                            child: Image.file(
+                              File(screenshot.path),
+                              fit: BoxFit.contain,
+                              cacheWidth: cacheWidth,
+                            ),
                           ),
                         ),
                       );

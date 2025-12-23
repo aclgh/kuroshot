@@ -26,6 +26,7 @@ class LibraryController extends ChangeNotifier {
   );
 
   String _searchQuery = '';
+  bool _showOnlyFavorites = false;
 
   // Selection
   bool _isSelectionMode = false;
@@ -45,6 +46,7 @@ class LibraryController extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   bool get isSelectionMode => _isSelectionMode;
   Set<String> get selectedIds => _selectedIds;
+  bool get showOnlyFavorites => _showOnlyFavorites;
 
   LibraryController({
     required ScreenshotService service,
@@ -97,9 +99,16 @@ class LibraryController extends ChangeNotifier {
     _loadPage(_page);
   }
 
+  Future<void> toggleFavoritesFilter() async {
+    _showOnlyFavorites = !_showOnlyFavorites;
+    _page = 1;
+    await _loadPage(_page);
+  }
+
   Future<void> _getAllPages() async {
     final totalCount = await _repository.getScreenshotCount(
       searchQuery: _searchQuery,
+      showOnlyFavorites: _showOnlyFavorites,
     );
     _allPages = (totalCount / _pageSize).ceil();
   }
@@ -118,6 +127,7 @@ class LibraryController extends ChangeNotifier {
         primarySort: _primarySort,
         secondarySort: _secondarySort,
         searchQuery: _searchQuery,
+        showOnlyFavorites: _showOnlyFavorites,
       );
 
       // 并行检查文件是否存在，过滤掉不存在的文件
@@ -130,7 +140,7 @@ class LibraryController extends ChangeNotifier {
       _screenshots = validScreenshots.whereType<Screenshot>().toList();
 
       logger.i(
-        "加载第 $page 页截图，共 ${_screenshots.length} 张 (已隐藏 ${rawScreenshots.length - _screenshots.length} 个丢失文件)",
+        "加载第 $page 页截图，共 ${_screenshots.length} 张 (已隐藏 ${rawScreenshots.length - _screenshots.length} 个丢失文件) [仅收藏:$_showOnlyFavorites]",
       );
     } catch (e) {
       logger.e("加载截图失败: $e");
@@ -149,7 +159,7 @@ class LibraryController extends ChangeNotifier {
     try {
       await _service.importFiles(paths);
 
-      // 导入完成后，通常重置回第一页以显示最新导入的内容
+      // 导入完成后，重置回第一页以显示最新导入的内容
       _page = 1;
       await _loadPage(_page);
 

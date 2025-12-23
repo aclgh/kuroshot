@@ -5,8 +5,6 @@ import '../../../shared/widgets/app_snack_bar.dart';
 import 'controllers/trash_controller.dart';
 import '../../screenshot_library/presentation/widgets/screenshot_card.dart';
 import '../../screenshot_library/presentation/widgets/page_input.dart';
-import '../../screenshot_library/presentation/widgets/sort_menu_button.dart';
-import '../../screenshot_library/presentation/widgets/library_search_bar.dart';
 import '../../screenshot_library/presentation/widgets/screenshot_context_menu.dart';
 
 class TrashPage extends StatefulWidget {
@@ -209,11 +207,6 @@ class _TrashPageState extends State<TrashPage> {
           ),
         ],
         const Spacer(),
-
-        //右侧菜单
-        const LibrarySearchBar(),
-
-        SortMenuButton(style: menuButtonStyle),
 
         MenuAnchor(
           style: const MenuStyle(alignment: Alignment.bottomRight),

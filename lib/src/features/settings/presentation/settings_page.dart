@@ -129,10 +129,10 @@ class SettingsPage extends StatelessWidget {
 
           // --- 示例：其他分组 ---
           const SettingsGroup(
-            title: "下载行为",
-            subtitle: "从信息源获取信息有关的设置",
+            title: "行为",
+            subtitle: "与应用行为有关的设置",
             icon: Icons.download_outlined,
-            children: [SettingsItem(title: "最大并发数", trailing: Text("3"))],
+            children: [SettingsItem(title: "截图快捷键", trailing: Text("未设置"))],
           ),
         ],
       ),

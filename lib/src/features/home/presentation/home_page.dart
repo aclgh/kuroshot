@@ -35,12 +35,12 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 8),
-                    NavButton(
-                      icon: Icons.home,
-                      isSelected:
-                          _controller.currentSection == HomeSection.home,
-                      onTap: () => _controller.changeSection(HomeSection.home),
-                    ),
+                    // NavButton(
+                    //   icon: Icons.home,
+                    //   isSelected:
+                    //       _controller.currentSection == HomeSection.home,
+                    //   onTap: () => _controller.changeSection(HomeSection.home),
+                    // ),
                     NavButton(
                       icon: Icons.photo_library,
                       isSelected:
@@ -89,7 +89,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildContent() {
     switch (_controller.currentSection) {
       case HomeSection.home:
-        return const Center(child: Text("主页内容"));
+        return const ScreenshotLibraryPage();
       case HomeSection.gallery:
         return const ScreenshotLibraryPage();
       case HomeSection.recycleBin:

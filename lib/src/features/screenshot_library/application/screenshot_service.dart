@@ -78,13 +78,14 @@ class ScreenshotService {
     _changeController.add(null);
   }
 
-  Future<void> importDetailedFiles(
+  Future<List<String>> importDetailedFiles(
     List<String> filePaths, {
     String? source,
     String? appName,
     String? windowTitle,
     DateTime? captureTime,
   }) async {
+    final savedPaths = <String>[];
     for (final path in filePaths) {
       final file = File(path);
       if (!await file.exists()) continue;
@@ -132,6 +133,7 @@ class ScreenshotService {
         );
 
         await _repository.insertScreenshot(screenshot);
+        savedPaths.add(absolutePath);
       } catch (e) {
         logger.e("处理文件失败 $path: $e");
       } finally {
@@ -140,6 +142,7 @@ class ScreenshotService {
       }
     }
     _changeController.add(null);
+    return savedPaths;
   }
 
   Future<void> removeScreenshots(List<String> ids) async {

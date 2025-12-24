@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../domain/screenshot.dart';
 import '../controllers/library_controller.dart';
 import '../screenshot_preview_page.dart';
+import 'package:intl/intl.dart';
 
 class ScreenshotCard extends StatefulWidget {
   final Screenshot screenshot;
@@ -246,7 +247,7 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
                     fontSize: 14,
                   ),
                   child: Text(
-                    widget.screenshot.timestamp.toLocal().toString(),
+                    _formatTime(widget.screenshot.timestamp),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -257,5 +258,20 @@ class _ScreenshotCardState extends State<ScreenshotCard> {
         ),
       ),
     );
+  }
+
+  String _formatTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final date = timestamp.toLocal();
+
+    // 判断是否是今天
+    final isToday =
+        now.year == date.year && now.month == date.month && now.day == date.day;
+
+    if (isToday) {
+      return DateFormat('HH:mm').format(date);
+    } else {
+      return DateFormat('yyyy-MM-dd HH:mm').format(date);
+    }
   }
 }

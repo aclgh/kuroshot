@@ -2,12 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import './controllers/settings_controller.dart';
+import './controllers/hotkey_recorder_controller.dart';
 import 'widgets/settings_group.dart';
 import 'widgets/settings_item.dart';
 import 'widgets/settings_number_picker.dart';
+import 'widgets/hotkey_recorder_wrapper.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  late final HotkeyRecorderController _hotkeyRecorderController;
+
+  @override
+  void initState() {
+    super.initState();
+    final settingsController = context.read<SettingsController>();
+    _hotkeyRecorderController = HotkeyRecorderController(
+      initialHotKey: settingsController.screenshotHotkey,
+    );
+  }
+
+  @override
+  void dispose() {
+    _hotkeyRecorderController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -128,11 +152,22 @@ class SettingsPage extends StatelessWidget {
           ),
 
           // --- 示例：其他分组 ---
-          const SettingsGroup(
+          SettingsGroup(
             title: "行为",
             subtitle: "与应用行为有关的设置",
-            icon: Icons.download_outlined,
-            children: [SettingsItem(title: "截图快捷键", trailing: Text("未设置"))],
+            icon: Icons.settings_outlined,
+            children: [
+              SettingsItem(
+                title: "截图快捷键",
+                subtitle: "点击右侧按钮录制新的快捷键",
+                trailing: HotKeyRecorderWrapper(
+                  controller: _hotkeyRecorderController,
+                  onHotKeyRecorded: (hotKey) {
+                    controller.updateScreenshotHotkey(hotKey);
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),

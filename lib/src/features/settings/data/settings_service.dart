@@ -5,6 +5,7 @@ class SettingsService {
   static const String _themeKey = 'theme_mode';
   static const String _localeKey = 'locale_code';
   static const String _pageKey = 'sql_page';
+  static const String _screenshotHotkeyKey = 'screenshot_hotkey';
 
   // 主题
   Future<ThemeMode> themeMode() async {
@@ -52,5 +53,20 @@ class SettingsService {
   Future<void> updateSqlPage(int page) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_pageKey, page);
+  }
+
+  // 截图快捷键
+  Future<String?> screenshotHotkey() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_screenshotHotkeyKey);
+  }
+
+  Future<void> updateScreenshotHotkey(String? hotkey) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (hotkey == null || hotkey.isEmpty) {
+      await prefs.remove(_screenshotHotkeyKey);
+    } else {
+      await prefs.setString(_screenshotHotkeyKey, hotkey);
+    }
   }
 }

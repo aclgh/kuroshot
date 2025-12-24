@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -14,6 +15,9 @@ import 'src/features/trash/presentation/controllers/trash_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 确保热键管理器初始化
+  await hotKeyManager.unregisterAll();
+
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     // 初始化 FFI 非移动端数据库支持
     sqfliteFfiInit();

@@ -183,7 +183,6 @@ class TrashController extends ChangeNotifier {
       await _service.restoreScreenshots(_selectedIds.toList());
       _selectedIds.clear();
       _isSelectionMode = false;
-      // Service 的操作会触发 onScreenshotsChanged，自动刷新页面
       return true;
     } catch (e) {
       logger.e("恢复失败: $e");
@@ -203,7 +202,6 @@ class TrashController extends ChangeNotifier {
       await _service.removeScreenshots(_selectedIds.toList());
       _selectedIds.clear();
       _isSelectionMode = false;
-      // Service 的操作会触发 onScreenshotsChanged，自动刷新页面
       return true;
     } catch (e) {
       logger.e("彻底删除失败: $e");

@@ -280,7 +280,7 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
             ),
             MenuItemButton(
               onPressed: () {
-                context.read<LibraryController>().updatePage(1);
+                context.read<LibraryController>().refreshCurrentPage();
                 if (context.mounted) {
                   ScaffoldMessenger.of(
                     context,

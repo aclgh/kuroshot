@@ -8,10 +8,13 @@
 
 #include <hotkey_manager_windows/hotkey_manager_windows_plugin_c_api.h>
 #include <pasteboard/pasteboard_plugin.h>
+#include <win_toast/win_toast_plugin.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   HotkeyManagerWindowsPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("HotkeyManagerWindowsPluginCApi"));
   PasteboardPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PasteboardPlugin"));
+  WinToastPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("WinToastPlugin"));
 }

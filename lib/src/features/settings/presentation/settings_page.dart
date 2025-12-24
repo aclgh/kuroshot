@@ -151,7 +151,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
 
-          // --- 示例：其他分组 ---
+          // 行为分组
           SettingsGroup(
             title: "行为",
             subtitle: "与应用行为有关的设置",

@@ -23,11 +23,14 @@ void main() async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
-  final settingsService = SettingsService();
-  final settingsController = SettingsController(settingsService);
-  await settingsController.loadSettings();
   final screenshotRepository = ScreenshotRepository();
   final screenshotService = ScreenshotService(screenshotRepository);
+  final settingsService = SettingsService();
+  final settingsController = SettingsController(
+    settingsService,
+    screenshotService,
+  );
+  await settingsController.loadSettings();
 
   runApp(
     MultiProvider(

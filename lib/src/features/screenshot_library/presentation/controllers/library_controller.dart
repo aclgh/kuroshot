@@ -90,6 +90,10 @@ class LibraryController extends ChangeNotifier {
     _loadPage(page);
   }
 
+  void refreshCurrentPage() {
+    _loadPage(_page);
+  }
+
   void updateSort({SortConfig? primary, SortConfig? secondary}) {
     if (primary != null) _primarySort = primary;
     if (secondary != null) _secondarySort = secondary;

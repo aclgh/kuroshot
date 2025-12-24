@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import '../../data/settings_service.dart';
+import '../../../screenshot_library/application/screenshot_service.dart';
+import '../../../screenshot_library/application/capture_handler.dart';
 
 class SettingsController with ChangeNotifier {
   final SettingsService _settingsService;
+  final ScreenshotService _screenshotService;
 
   // 构造函数注入 Service
-  SettingsController(this._settingsService);
+  SettingsController(this._settingsService, this._screenshotService);
 
   late ThemeMode _themeMode;
   Locale? _locale;
@@ -97,7 +100,7 @@ class SettingsController with ChangeNotifier {
       hotKey,
       keyDownHandler: (hotKey) {
         debugPrint('Screenshot hotkey pressed: ${hotKey.toJson()}');
-        // TODO: Trigger screenshot
+        captureAndImport(_screenshotService);
       },
     );
   }

@@ -110,12 +110,6 @@ class _ScreenshotPreviewPageState extends State<ScreenshotPreviewPage> {
                       });
                     },
                     itemBuilder: (context, index) {
-                      // 动态计算缓存大小，避免加载过大的图片导致内存溢出
-                      final screenWidth = MediaQuery.of(context).size.width;
-                      final pixelRatio = MediaQuery.of(
-                        context,
-                      ).devicePixelRatio;
-                      final cacheWidth = (screenWidth * pixelRatio).round();
                       final screenshot = screenshots[index];
 
                       return ScreenshotContextMenu(
@@ -174,7 +168,6 @@ class _ScreenshotPreviewPageState extends State<ScreenshotPreviewPage> {
                             child: Image.file(
                               File(screenshot.path),
                               fit: BoxFit.contain,
-                              cacheWidth: cacheWidth,
                             ),
                           ),
                         ),

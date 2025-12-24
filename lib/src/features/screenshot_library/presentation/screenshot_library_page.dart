@@ -88,23 +88,38 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
                         isFavorite: screenshot.isFavorite,
                         onToggleFavorite: () async {
                           final wasFavorite = screenshot.isFavorite;
-                          await controller.toggleFavorite(screenshot.id);
+                          final success = await controller.toggleFavorite(
+                            screenshot.id,
+                          );
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               AppSnackBar(
                                 context,
-                                message: wasFavorite ? '已取消收藏' : '已收藏',
+                                message: success
+                                    ? (wasFavorite ? '已取消收藏' : '已收藏')
+                                    : controller.lastError ?? '操作失败',
                               ),
                             );
+                            if (success) {
+                              controller.clearError();
+                            }
                           }
                         },
-                        onMoveToTrash: () {
+                        onMoveToTrash: () async {
                           controller.selectedIds.add(screenshot.id);
-                          controller.deleteSelected();
+                          final success = await controller.deleteSelected();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              AppSnackBar(context, message: '已移至回收站'),
+                              AppSnackBar(
+                                context,
+                                message: success
+                                    ? '已移至回收站'
+                                    : controller.lastError ?? '删除失败',
+                              ),
                             );
+                            if (success) {
+                              controller.clearError();
+                            }
                           }
                         },
                         onOpen: () {
@@ -357,15 +372,23 @@ class _ScreenshotLibraryPageState extends State<ScreenshotLibraryPage> {
                               child: const Text("取消"),
                             ),
                             FilledButton(
-                              onPressed: () {
+                              onPressed: () async {
                                 Navigator.of(context).pop();
-                                controller.deleteSelected();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  AppSnackBar(
-                                    context,
-                                    message: '已将 $selectedCount 张截图移至回收站',
-                                  ),
-                                );
+                                final success = await controller
+                                    .deleteSelected();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    AppSnackBar(
+                                      context,
+                                      message: success
+                                          ? '已将 $selectedCount 张截图移至回收站'
+                                          : controller.lastError ?? '删除失败',
+                                    ),
+                                  );
+                                  if (success) {
+                                    controller.clearError();
+                                  }
+                                }
                               },
                               style: FilledButton.styleFrom(
                                 backgroundColor: colorScheme.error,

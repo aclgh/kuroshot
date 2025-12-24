@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kuroshot/utils/logger.dart';
 
@@ -33,10 +34,12 @@ class TrashController extends ChangeNotifier {
   //stats
   List<Screenshot> _screenshots = [];
   bool _isLoading = false;
+  String? _lastError;
 
   // Getters
   List<Screenshot> get screenshots => _screenshots;
   bool get isLoading => _isLoading;
+  String? get lastError => _lastError;
   int get page => _page;
   int get allPages => _allPages;
   SortConfig get primarySort => _primarySort;
@@ -62,6 +65,11 @@ class TrashController extends ChangeNotifier {
   void dispose() {
     _subscription.cancel();
     super.dispose();
+  }
+
+  void clearError() {
+    _lastError = null;
+    notifyListeners();
   }
 
   void updateConfig({required int pageSize}) {
@@ -112,14 +120,26 @@ class TrashController extends ChangeNotifier {
       await _getAllPages();
 
       // 只获取已删除的截图 (isDeleted = 1)
-      _screenshots = await _repository.getDeletedScreenshotsPaged(
+      final rawScreenshots = await _repository.getDeletedScreenshotsPaged(
         page: page,
         pageSize: _pageSize,
         primarySort: _primarySort,
         secondarySort: _secondarySort,
         searchQuery: _searchQuery,
       );
-      logger.i("加载第 $page 页回收站截图，共 ${_screenshots.length} 张");
+
+      // 并行检查文件是否存在，过滤掉不存在的文件
+      final validScreenshots = await Future.wait(
+        rawScreenshots.map((s) async {
+          return await File(s.path).exists() ? s : null;
+        }),
+      );
+
+      _screenshots = validScreenshots.whereType<Screenshot>().toList();
+
+      logger.i(
+        "加载第 $page 页回收站截图，共 ${_screenshots.length} 张 (已隐藏 ${rawScreenshots.length - _screenshots.length} 个丢失文件)",
+      );
     } catch (e) {
       logger.e("加载回收站截图失败: $e");
     } finally {
@@ -155,53 +175,42 @@ class TrashController extends ChangeNotifier {
   }
 
   // 恢复选中的截图
-  Future<void> restoreSelected() async {
-    if (_selectedIds.isEmpty) return;
+  Future<bool> restoreSelected() async {
+    if (_selectedIds.isEmpty) return false;
 
-    _isLoading = true;
-    notifyListeners();
-
+    _lastError = null;
     try {
       await _service.restoreScreenshots(_selectedIds.toList());
       _selectedIds.clear();
       _isSelectionMode = false;
-      await _loadPage(_page);
+      // Service 的操作会触发 onScreenshotsChanged，自动刷新页面
+      return true;
     } catch (e) {
       logger.e("恢复失败: $e");
-    } finally {
-      if (_screenshots.isEmpty && _page > 1) {
-        // 当前页没有数据且不是第一页，尝试加载前一页
-        _page--;
-        await _loadPage(_page);
-      }
+      _lastError = "恢复失败: ${e.toString()}";
       _isLoading = false;
       notifyListeners();
+      return false;
     }
-    // Service 的操作会触发 onScreenshotsChanged，无需手动通知
   }
 
   // 彻底删除选中的截图
-  Future<void> permanentlyDeleteSelected() async {
-    if (_selectedIds.isEmpty) return;
+  Future<bool> permanentlyDeleteSelected() async {
+    if (_selectedIds.isEmpty) return false;
 
-    _isLoading = true;
-    notifyListeners();
-
+    _lastError = null;
     try {
       await _service.removeScreenshots(_selectedIds.toList());
       _selectedIds.clear();
       _isSelectionMode = false;
-      await _loadPage(_page);
+      // Service 的操作会触发 onScreenshotsChanged，自动刷新页面
+      return true;
     } catch (e) {
       logger.e("彻底删除失败: $e");
-    } finally {
-      if (_screenshots.isEmpty && _page > 1) {
-        // 当前页没有数据且不是第一页，尝试加载前一页
-        _page--;
-        await _loadPage(_page);
-      }
+      _lastError = "彻底删除失败: ${e.toString()}";
       _isLoading = false;
       notifyListeners();
+      return false;
     }
   }
 }

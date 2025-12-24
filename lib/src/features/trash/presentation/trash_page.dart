@@ -78,13 +78,21 @@ class _TrashPageState extends State<TrashPage> {
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final screenshot = controller.screenshots[index];
                       return ScreenshotContextMenu(
-                        onRestore: () {
+                        onRestore: () async {
                           controller.selectedIds.add(screenshot.id);
-                          controller.restoreSelected();
+                          final success = await controller.restoreSelected();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              AppSnackBar(context, message: '已恢复到图库'),
+                              AppSnackBar(
+                                context,
+                                message: success
+                                    ? '已恢复到图库'
+                                    : controller.lastError ?? '恢复失败',
+                              ),
                             );
+                            if (success) {
+                              controller.clearError();
+                            }
                           }
                         },
                         onPermanentlyDelete: () {
@@ -93,7 +101,7 @@ class _TrashPageState extends State<TrashPage> {
                               context: context,
                               builder: (context) => AlertDialog(
                                 title: const Text("确认彻底删除"),
-                                content: Text("确定要彻底删除这张截图吗？此操作不可恢复。"),
+                                content: const Text("确定要彻底删除这张截图吗？此操作不可恢复。"),
                                 actions: [
                                   TextButton(
                                     onPressed: () =>
@@ -101,18 +109,27 @@ class _TrashPageState extends State<TrashPage> {
                                     child: const Text("取消"),
                                   ),
                                   FilledButton(
-                                    onPressed: () {
+                                    onPressed: () async {
                                       Navigator.of(context).pop();
                                       controller.selectedIds.add(screenshot.id);
-                                      controller.permanentlyDeleteSelected();
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        AppSnackBar(
+                                      final success = await controller
+                                          .permanentlyDeleteSelected();
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
                                           context,
-                                          message: '已彻底删除截图',
-                                        ),
-                                      );
+                                        ).showSnackBar(
+                                          AppSnackBar(
+                                            context,
+                                            message: success
+                                                ? '已彻底删除截图'
+                                                : controller.lastError ??
+                                                      '彻底删除失败',
+                                          ),
+                                        );
+                                        if (success) {
+                                          controller.clearError();
+                                        }
+                                      }
                                     },
                                     style: FilledButton.styleFrom(
                                       backgroundColor: colorScheme.error,
@@ -300,15 +317,23 @@ class _TrashPageState extends State<TrashPage> {
                               child: const Text("取消"),
                             ),
                             FilledButton(
-                              onPressed: () {
+                              onPressed: () async {
                                 Navigator.of(context).pop();
-                                controller.restoreSelected();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  AppSnackBar(
-                                    context,
-                                    message: '已恢复 $selectedCount 张截图',
-                                  ),
-                                );
+                                final success = await controller
+                                    .restoreSelected();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    AppSnackBar(
+                                      context,
+                                      message: success
+                                          ? '已恢复 $selectedCount 张截图'
+                                          : controller.lastError ?? '恢复失败',
+                                    ),
+                                  );
+                                  if (success) {
+                                    controller.clearError();
+                                  }
+                                }
                               },
                               child: const Text("恢复"),
                             ),
@@ -337,15 +362,23 @@ class _TrashPageState extends State<TrashPage> {
                               child: const Text("取消"),
                             ),
                             FilledButton(
-                              onPressed: () {
+                              onPressed: () async {
                                 Navigator.of(context).pop();
-                                controller.permanentlyDeleteSelected();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  AppSnackBar(
-                                    context,
-                                    message: '已彻底删除 $selectedCount 张截图',
-                                  ),
-                                );
+                                final success = await controller
+                                    .permanentlyDeleteSelected();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    AppSnackBar(
+                                      context,
+                                      message: success
+                                          ? '已彻底删除 $selectedCount 张截图'
+                                          : controller.lastError ?? '彻底删除失败',
+                                    ),
+                                  );
+                                  if (success) {
+                                    controller.clearError();
+                                  }
+                                }
                               },
                               style: FilledButton.styleFrom(
                                 backgroundColor: colorScheme.error,

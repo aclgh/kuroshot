@@ -35,10 +35,12 @@ class LibraryController extends ChangeNotifier {
   //stats
   List<Screenshot> _screenshots = [];
   bool _isLoading = false;
+  String? _lastError;
 
   // Getters
   List<Screenshot> get screenshots => _screenshots;
   bool get isLoading => _isLoading;
+  String? get lastError => _lastError;
   int get page => _page;
   int get allPages => _allPages;
   SortConfig get primarySort => _primarySort;
@@ -65,6 +67,11 @@ class LibraryController extends ChangeNotifier {
   void dispose() {
     _subscription.cancel();
     super.dispose();
+  }
+
+  void clearError() {
+    _lastError = null;
+    notifyListeners();
   }
 
   void updateConfig({required int pageSize}) {
@@ -198,36 +205,36 @@ class LibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> deleteSelected() async {
-    if (_selectedIds.isEmpty) return;
+  Future<bool> deleteSelected() async {
+    if (_selectedIds.isEmpty) return false;
 
-    _isLoading = true;
-    notifyListeners();
-
+    _lastError = null;
     try {
       await _service.deleteScreenshots(_selectedIds.toList());
       _selectedIds.clear();
       _isSelectionMode = false;
-      await _loadPage(_page);
+      // Service 的操作会触发 onScreenshotsChanged，自动刷新页面
+      return true;
     } catch (e) {
       logger.e("删除失败: $e");
-    } finally {
-      if (_screenshots.isEmpty && _page > 1) {
-        // 当前页没有数据且不是第一页，尝试加载前一页
-        _page--;
-        await _loadPage(_page);
-      }
+      _lastError = "删除失败: ${e.toString()}";
       _isLoading = false;
       notifyListeners();
+      return false;
     }
   }
 
-  Future<void> toggleFavorite(String id) async {
+  Future<bool> toggleFavorite(String id) async {
+    _lastError = null;
     try {
       await _service.toggleFavorite(id);
       // 不需要重新加载整页，service的stream会自动触发刷新
+      return true;
     } catch (e) {
       logger.e("切换收藏状态失败: $e");
+      _lastError = "切换收藏状态失败: ${e.toString()}";
+      notifyListeners();
+      return false;
     }
   }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 class ScreenshotContextMenu extends StatelessWidget {
   final Widget child;
-
   final VoidCallback? onMoveToTrash; // 移入回收站 (图库用)
   final VoidCallback? onRestore; // 恢复 (回收站用)
   final VoidCallback? onPermanentlyDelete; // 彻底删除 (回收站用)

@@ -126,13 +126,21 @@ class _ScreenshotPreviewPageState extends State<ScreenshotPreviewPage> {
                             );
                           }
                         },
-                        onMoveToTrash: () {
+                        onMoveToTrash: () async {
                           controller.selectedIds.add(screenshot.id);
-                          controller.deleteSelected();
+                          final success = await controller.deleteSelected();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              AppSnackBar(context, message: '已移至回收站'),
+                              AppSnackBar(
+                                context,
+                                message: success
+                                    ? '已移至回收站'
+                                    : controller.lastError ?? '删除失败',
+                              ),
                             );
+                            if (success) {
+                              controller.clearError();
+                            }
                             Navigator.of(context).pop();
                           }
                         },

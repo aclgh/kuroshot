@@ -56,9 +56,9 @@ class LibraryController extends ChangeNotifier {
   }) : _service = service,
        _repository = repository {
     // 监听 Service 层的数据变更流（包括删除、恢复等操作）
-    _subscription = _service.onScreenshotsChanged.listen((_) {
+    _subscription = _service.onScreenshotsChanged.listen((_) async {
       logger.i("检测到数据变更，刷新图库");
-      _loadPage(_page);
+      await _loadPage(_page);
     });
     _loadPage(_page);
   }
@@ -132,6 +132,13 @@ class LibraryController extends ChangeNotifier {
       // 每次加载页面时同时也更新总页数，以防数据变动
       await _getAllPages();
 
+      // 如果请求的页码超出范围，调整到最后一页
+      if (page > _allPages && _allPages > 0) {
+        page = _allPages;
+        _page = page;
+        logger.i("请求页码超出范围，调整到第 $page 页");
+      }
+
       final rawScreenshots = await _repository.getScreenshotsPaged(
         page: page,
         pageSize: _pageSize,
@@ -153,6 +160,19 @@ class LibraryController extends ChangeNotifier {
       logger.i(
         "加载第 $page 页截图，共 ${_screenshots.length} 张 (已隐藏 ${rawScreenshots.length - _screenshots.length} 个丢失文件) [仅收藏:$_showOnlyFavorites]",
       );
+
+      // 如果当前页没有数据且不是第一页，自动跳转到上一页
+      if (_screenshots.isEmpty && page > 1) {
+        logger.i("第 $page 页无数据，跳转到第 ${page - 1} 页");
+        _page = page - 1;
+        _isLoading = false;
+        notifyListeners();
+        // 递归加载上一页
+        return _loadPage(_page);
+      }
+
+      // 更新当前页码
+      _page = page;
     } catch (e) {
       logger.e("加载截图失败: $e");
     } finally {
@@ -217,7 +237,7 @@ class LibraryController extends ChangeNotifier {
       await _service.deleteScreenshots(_selectedIds.toList());
       _selectedIds.clear();
       _isSelectionMode = false;
-      // Service 的操作会触发 onScreenshotsChanged，自动刷新页面
+      // Service 的操作会触发 onScreenshotsChanged，自动刷新页面并调整页码
       return true;
     } catch (e) {
       logger.e("删除失败: $e");

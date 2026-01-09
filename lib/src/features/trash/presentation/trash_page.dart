@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../shared/widgets/app_snack_bar.dart';
@@ -16,9 +17,39 @@ class TrashPage extends StatefulWidget {
 
 class _TrashPageState extends State<TrashPage> {
   @override
+  void initState() {
+    super.initState();
+    // 添加全局键盘监听
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+  }
+
+  @override
   void dispose() {
+    // 移除全局键盘监听
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     PaintingBinding.instance.imageCache.clear();
     super.dispose();
+  }
+
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      final controller = context.read<TrashController>();
+
+      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        // 左键：上一页
+        if (controller.page > 1) {
+          controller.updatePage(controller.page - 1);
+          return true;
+        }
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        // 右键：下一页
+        if (controller.page < controller.allPages) {
+          controller.updatePage(controller.page + 1);
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   @override

@@ -12,6 +12,7 @@ import 'src/features/screenshot_library/presentation/controllers/library_control
 import 'src/features/screenshot_library/data/screenshot_repository.dart';
 import 'src/features/screenshot_library/application/screenshot_service.dart';
 import 'src/features/trash/presentation/controllers/trash_controller.dart';
+import 'src/features/category/presentation/controllers/category_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +63,16 @@ void main() async {
           ),
           update: (context, settings, trash) {
             return trash!..updateConfig(pageSize: settings.sqlPage);
+          },
+        ),
+        ChangeNotifierProxyProvider<SettingsController, CategoryController>(
+          lazy: false,
+          create: (context) => CategoryController(
+            repository: context.read<ScreenshotRepository>(),
+            service: context.read<ScreenshotService>(),
+          ),
+          update: (context, settings, category) {
+            return category!..updateConfig(pageSize: settings.sqlPage);
           },
         ),
       ],

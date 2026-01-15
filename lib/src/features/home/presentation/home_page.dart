@@ -4,6 +4,7 @@ import 'controllers/home_navigation_controller.dart';
 import 'widgets/nav_button.dart';
 import '../../settings/presentation/settings_page.dart';
 import '../../screenshot_library/presentation/screenshot_library_page.dart';
+import '../../category/presentation/category_page.dart';
 import '../../trash/presentation/trash_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -49,6 +50,13 @@ class _HomePageState extends State<HomePage> {
                           _controller.changeSection(HomeSection.gallery),
                     ),
                     NavButton(
+                      icon: Icons.category_outlined,
+                      isSelected:
+                          _controller.currentSection == HomeSection.category,
+                      onTap: () =>
+                          _controller.changeSection(HomeSection.category),
+                    ),
+                    NavButton(
                       icon: Icons.delete_outline,
                       isSelected:
                           _controller.currentSection == HomeSection.recycleBin,
@@ -92,6 +100,8 @@ class _HomePageState extends State<HomePage> {
         return const ScreenshotLibraryPage();
       case HomeSection.gallery:
         return const ScreenshotLibraryPage();
+      case HomeSection.category:
+        return const CategoryPage();
       case HomeSection.recycleBin:
         return const TrashPage();
       case HomeSection.settings:

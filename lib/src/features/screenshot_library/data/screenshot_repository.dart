@@ -104,6 +104,9 @@ class ScreenshotRepository {
     );
   }
 
+  // Public method for external use
+  Screenshot fromMap(Map<String, dynamic> map) => _fromMap(map);
+
   //CRUD
   Future<void> insertScreenshot(Screenshot screenshot) async {
     final db = await database;
